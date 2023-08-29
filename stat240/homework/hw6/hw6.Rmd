@@ -1,0 +1,186 @@
+---
+title: "Homework 6"
+author: "Gurusharan Kunusoth"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, fig.height = 3)
+library(tidyverse)
+source("ggprob.R")
+```
+
+
+<br/>
+
+### 1
+
+For this question,
+
+- Read in the same `chimpanzee.csv` data file we used for lecture/discussion.
+- Make an assumption that there are universal $p_{\text{partner}}$ and $p_{\text{no partner}}$ parameters representing the probability ANY chimpanzee would make a prosocial choice in a single trial with or without a partner.
+- Assume that all trials are independent.
+
+Now, suppose we are interested in estimating the *difference* in sample proportions rather than just the individual population proportions. Confidence intervals can be defined for this purpose.
+
+#### 1A
+
+Using the Wald estimates, construct a ***90% confidence*** interval for the difference in the population proportions $p_{\text{partner}} - p_{\text{no partner}}$. (Note: you this proportion is treater as universal for all chimps, summarize your data across ALL chimps to get these estimates.)
+```{r}
+chimpanzee <- read.csv("chimpanzee.csv")
+
+partnerGroup <- chimpanzee %>%
+  filter(partner != "none")
+
+noPartnerGroup <- chimpanzee %>%
+  filter(partner == "none")
+
+pPartner <- sum(partnerGroup$prosocial) / sum(partnerGroup$prosocial, partnerGroup$selfish)
+pNoPartner <- sum(noPartnerGroup$prosocial) / sum(noPartnerGroup$prosocial, noPartnerGroup$selfish)
+
+seDiff <- sqrt((pPartner * (1 - pPartner) / nrow(partnerGroup)) + (pNoPartner * (1 - pNoPartner) / nrow(noPartnerGroup)))
+
+z90 <- qnorm(0.9)
+ci <- c(pPartner - pNoPartner - z90 * seDiff, pPartner - pNoPartner + z90 * seDiff)
+
+print(ci)
+
+```
+
+
+#### 1B
+
+Interpret the estimated confidence interval in context.
+
+The estimated 90% confidence interval for the difference in proportions ($p_{\text{partner}} - p_{\text{no partner}}$) suggests that we are 90% confident the true difference lies within this range. If the interval includes zero, there may not be a significant difference between chimpanzees making prosocial choices with and without partners. If the interval does not contain zero, there is a significant difference, and we can be confident about the direction of the difference.
+
+
+<br/>
+
+### 2-4
+
+For the next several questions, we will be using the Boston Marathon data set again. The following code chunk reads in the *TIM.txt* data file (you may need to adjust the path to the data), and makes the following modifications to the data frame.
+
+The following variables are renamed:
+  - `bib` = `BibNum` and changed to a character type
+  - `year` = `Year`
+  - `age` = `Age`
+  - `gender` = `Gender1F2M`, change 1 to F and 2 to M
+
+These variables are removed:  `StartHr`, `StartMin`, `HalfMar`, `Age2014`
+
+Also, the data set is filtered to only include the years 2011 and 2012 (i.e., observations from 2013 are removed).
+
+```{r}
+tim = read_table("TIM.txt", guess_max = 20000) %>%
+  rename(bib = BibNum,
+         year = Year,
+         age = Age,
+         gender = Gender1F2M) %>%
+  mutate(bib = as.character(bib),
+         gender = case_when(
+           gender == 1 ~ "F",
+           gender == 2 ~ "M"
+         )) %>%
+  select(-c(StartHr,StartMin,HalfMar, "Age2014")) %>%
+  filter(year != 2013)
+```
+
+
+
+### 2
+
+- Create a new variable called `final` that gives the total time each runner took to run the marathon.  This will involve summing the spit times; the split times are provided in 5 KM intervals starting with `K0-5` through `K35-40`, and the final interval, `K40-Fin`, which is 2.2 KM.
+- Add a variable `speed` that has two possibles values,"Fast" or "Slow", depending on if the runner finished the marathon in under 3.5 hours or greater than or equal to 3.5 hours, respectively.
+- Print out a table that lists the total number of runners by gender and speed.  There should be one row for Female and Fast, Female and Slow, Male and Fast, and Male and Slow.
+```{r}
+tim <- tim %>%
+  mutate(final = `K40-Fin`) %>%
+  rowwise() %>%
+  mutate(final = sum(c(`K0-5`, `K5-10`, `K10-15`, `K15-20`, `K20-25`, `K25-30`, `K30-35`, final)))
+
+tim <- tim %>%
+  mutate(speed = ifelse(final < 3.5 * 60, "Fast", "Slow"))
+
+result_table <- tim %>%
+  group_by(gender, speed) %>%
+  summarise(total_runners = n())
+
+print(result_table)
+```
+
+
+
+### 3
+
+- Display a plot that has a point of `size=2` at the sample mean of the final time for each of the four combinations of `gender` and `speed`.
+- Facet the graphic into two plots based on the category of `speed` ("Fast" or "Slow").
+- Add a blue (vertical) line segment to visualize a ***90% confidence interval*** for the mean final time for each gender and speed category. The lines should extend vertically from the lower bound to the upper bound of the confidence interval, and the point estimate from the previous step will be in the middle of the interval.
+-  Label axes appropriately and add an informative title to the plot.
+
+Hint: Your final plot should have four vertical segments for the confidence intervals, a point in the center of each vertical line, and a horizontal dashed line.
+```{r}
+mean_ci_data <- tim %>%
+  group_by(gender, speed) %>%
+  summarize(mean_final_time = mean(final),
+            ci_lower = mean_final_time - qt(0.95, df = n() - 1) * (sd(final) / sqrt(n())),
+            ci_upper = mean_final_time + qt(0.95, df = n() - 1) * (sd(final) / sqrt(n())))
+
+plot <- ggplot(mean_ci_data, aes(x = gender, y = mean_final_time, color = speed)) +
+  geom_point(size = 2) +
+  geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper), width = 0.1) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  facet_wrap(~speed, scales = "free_y") +
+  labs(x = "Gender", y = "Mean Final Time", title = "Mean Final Time by Gender and Speed") +
+  theme_minimal()
+
+print(plot)
+```
+
+
+
+### 4
+
+- Consider only the runners with `speed` = "Slow".
+- Assume that the final time for each runner is independent.
+- Test the hypothesis that $\mu_F = \mu_M$ versus the two-sided alternative, where $\mu_F$ is the average final time for ("Slow") Female runners and $\mu_M$ is the average final time for ("Slow") Male runners.
+
+
+#### 4A
+
+What is the value of the observed test statistic?
+```{r}
+slow_runners <- tim %>% filter(speed == "Slow")
+
+female_data <- slow_runners %>% filter(gender == "F")
+male_data <- slow_runners %>% filter(gender == "M")
+
+test_result <- t.test(female_data$final, male_data$final, alternative = "two.sided")
+
+observed_statistic <- test_result$statistic
+observed_statistic
+```
+
+
+#### 4B
+
+What is the distribution of the test statistic assuming the null hypothesis is true? State the name of the distribution and the values of its parameter(s).
+
+
+The test statistic in a two-sample t-test follows a t-distribution when the null hypothesis is true. The t-distribution has a single parameter called the degrees of freedom (df), which is given by the formula df = n_F + n_M - 2, where n_F is the number of observations in the Female group and n_M is the number of observations in the Male group. The two-sample t-test is used to assess whether the average final time for "Slow" Female runners (μ_F) is different from the average final time for "Slow" Male runners (μ_M). The t-distribution with the appropriate degrees of freedom evaluates the probability of observing the test statistic under the null hypothesis.
+
+#### 4C
+
+What is your computed p-value?
+```{r}
+computed_p_value <- test_result$p.value
+computed_p_value
+```
+
+
+#### 4D
+
+Interpret the result of the hypothesis test in context.
+
+Based on the computed p-value and a significance level of 0.05, we would either reject or fail to reject the null hypothesis. If the p-value is less than 0.05, we conclude that the average final time for "Slow" Female and Male runners is significantly different. If the p-value is greater than 0.05, we do not have enough evidence to claim a significant difference in average final times between the two groups.
+

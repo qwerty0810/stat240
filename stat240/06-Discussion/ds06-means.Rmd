@@ -1,0 +1,176 @@
+---
+title: "STAT 240 Discussion 6"
+output: html_document
+---
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE)
+library(tidyverse)
+library(lubridate)
+source("ggprob.R")
+```
+
+## Group XXX
+
+## Members Present
+
+- ADD THE NAMES OF EVERYONE PRESENT
+- MAKE THE NAME **BOLD** OF THE RESPONSIBLE PERSON TO UPLOAD THE FILES FOR THE GROUP
+
+## Members Absent
+
+- ADD NAMES OF ANY ABSENT MEMBERS
+
+## Questions
+
+
+### Data
+
+The following code reads in the Madison weather data and calculates the average July temperature for each year.
+Treat the years from 1869 to 1898 as *early Madison* and from 1991 to 2020 as *recent Madison*.
+
+```{r}
+## Read and transform the Madison weather data
+mw = read_csv("madison-weather-2020-clean-2.csv")
+
+mw_july = mw %>%
+  filter(month=="Jul") %>%
+  filter(year < 1899 | year > 1990) %>%
+  group_by(year) %>%
+  summarize(tavg = mean(tavg)) %>%
+  mutate(era = case_when(
+    year < 1900 ~ "early",
+    year > 1989 ~ "recent"))
+
+```
+
+### 1
+
+Calculate the mean and standard deviation of the average July temperature separately for early Madison and recent Madison.
+
+```{r}
+# insert code here
+early_madison_stats <- mw_july %>%
+  filter(era == "early") %>%
+  summarize(mean_temp = mean(tavg),
+            sd_temp = sd(tavg))
+
+recent_madison_stats <- mw_july %>%
+  filter(era == "recent") %>%
+  summarize(mean_temp = mean(tavg),
+            sd_temp = sd(tavg))
+
+early_madison_stats
+recent_madison_stats
+
+```
+
+
+
+### 2
+
+Make a plot with separate density curves for the early and recent July average temperatures.
+
+```{r}
+# insert code here
+
+ggplot(mw_july, aes(x = tavg, fill = era)) +
+  geom_density(alpha = 0.5) +
+  labs(x = "Average July Temperature", y = "Density", title = "Density Plot of Average July Temperature") +
+  scale_fill_manual(values = c("early" = "blue", "recent" = "red")) +
+  theme_minimal()
+```
+
+
+
+### 3
+
+Treat the 30 years in each time period as separate samples. Find 95% confidence intervals for the average July temperature in each time period. Compare results with the output of the `t.test()`.
+
+```{r}
+# insert code here
+library(dplyr)
+library(boot)
+
+early_madison_data <- filter(mw_july, era == "early")$tavg
+recent_madison_data <- filter(mw_july, era == "recent")$tavg
+
+mean_function <- function(data, index) {
+  mean(data[index])
+}
+
+early_boot <- boot(early_madison_data, mean_function, R = 10000)
+early_ci <- boot.ci(early_boot, type = "perc")
+
+recent_boot <- boot(recent_madison_data, mean_function, R = 10000)
+recent_ci <- boot.ci(recent_boot, type = "perc")
+
+cat("95% Confidence Interval for Early Madison: ", early_ci$percent[4], " to ", early_ci$percent[5], "\n")
+cat("95% Confidence Interval for Recent Madison: ", recent_ci$percent[4], " to ", recent_ci$percent[5], "\n")
+
+early_t_test <- t.test(early_madison_data)
+recent_t_test <- t.test(recent_madison_data)
+
+cat("T-test for Early Madison:\n")
+print(early_t_test)
+cat("\nT-test for Recent Madison:\n")
+print(recent_t_test)
+```
+
+
+
+### 4
+
+Draw a graph of a t distribution with 29 degrees of freedom and with the middle 95% of the distribution shaded in.
+
+```{r}
+# insert code here
+
+t_distribution_values <- function(x) {
+  dt(x, df = 29)
+}
+
+t_data <- data.frame(x = seq(-4, 4, 0.01))
+
+t_data$y <- t_distribution_values(t_data$x)
+
+ggplot(t_data, aes(x = x, y = y)) +
+  geom_line() +
+  geom_area(data = subset(t_data, x >= qt(0.025, df = 29) & x <= qt(0.975, df = 29)), fill = "blue") +
+  labs(x = "t Value", y = "Density", title = "t Distribution with 29 Degrees of Freedom") +
+  theme_minimal()
+```
+
+
+
+### 5
+
+Find a 95% confidence interval for the change (recent minus early) of average July temperatures in Madison. Do this first using R, then (optionally) verify by manual computation (note you can get the degrees of freedom from the R `t.test` output).
+
+```{r}
+# insert code here
+
+```
+
+
+
+### 6
+
+Test the hypothesis that the mean July temperature in Madison in the early era is equal to that in the recent era versus that alternative that they are different. Calculate the test statistic $t$ from the equations and verify it matches the result from `t.test()`. Write a conclusion in context to interpret the result of this hypothesis test.
+
+```{r}
+# insert code here
+
+```
+
+
+
+### 7
+
+Make a plot of the t distribution for the previous problem. Add a vertical line at the test statistic and shade in the two tail areas that correspond to the p-value.
+
+```{r}
+# insert code here
+
+```
+

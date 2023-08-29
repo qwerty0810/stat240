@@ -1,0 +1,273 @@
+---
+title: "Homework 3"
+author: "Gurusharan Kunusoth"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, fig.height = 3)
+library(tidyverse)
+library(lubridate)
+library(readxl)
+```
+
+
+## Section A: tidyr with obesity and education data
+
+
+The following chunk reads in and transforms the `obseity-hw.csv` data file (which is **different from the files used in lectures**) to remove children and missing rows, estimate the number of obese individuals of a given sex and age in each zip code, and summarise these numbers over zip and sex. Description of columns:
+
+- `zip` = zip code
+- `sex` = sex (male or female)
+- `adult_n` = estimated # of adults (by zip and sex)
+- `obese_n` = estimated # of obese adults (by zip and sex)
+- `obese_p` = estimated proportion of obese adults (by zip and sex)
+
+```{r}
+obesity = read_csv("obesity-hw.csv") %>% 
+  drop_na() %>%                         ## drop rows with missing data
+  filter(age != "05-17") %>%            ## drop children
+  mutate(obese_n = pop*obese/bmi) %>%   ## add estimated # of obese adults
+  group_by(zip,sex) %>%                 ## aggregate over age and sex
+  summarize(adult_n = sum(pop),         ## compute estimates
+            obese_n = sum(obese_n),
+            obese_p = obese_n/adult_n) %>% 
+  ungroup()
+
+head(obesity,10)
+```
+
+The next chunk reads in the `education.csv` file. Description of columns:
+
+- `pct_m_bach` = % male adults (aged 25+, of the given sex by zip) with at least a bachelors degree
+- `pct_f_bach` = % female adults (aged 25+, of the given sex by zip) with at least a bachelors degree
+
+```{r}
+education = read_csv("education.csv")
+```
+
+
+
+### 1
+
+We will use the `obesity` and `education` data frames created above. First, rename the columns in `education` to be `male` and `female` so they match the values in `obesity`. Then, pivot `education` so that each combination of a zip code and either "male" or "female" has its own row and there is a single percentage bachelor value in each row (i.e. "extract" the column names into a new column, after which your first 4 rows should look like 53001,male,13 ; 53001,female,23 ; 53002,male,16.2 ; 53002,female,23).
+
+Then, join the `obesity` and pivoted `education` data frames together by zip and sex so that **only rows they _both_ have in common are kept** (hint: if you ensure the two data frames have the same column names for zip and sex and the same value names (i.e. "male" and "female" in both) then this should happen automagically).
+
+Print out the first ten rows of this final resulting data frame by piping it into ` %>% head(10)`.
+
+```{r}
+# insert code below
+education_pivot <- education %>%
+  rename(male = pct_m_bach, female = pct_f_bach) %>%
+  pivot_longer(cols = c(male, female), names_to = "sex", values_to = "pct_bach")
+
+final_df <- inner_join(obesity, education_pivot, by = c("zip", "sex"))
+
+head(final_df, 10)
+
+```
+
+
+
+### 2
+
+Next we will investigate connections between obesity and education status (in terms of a bachelors degree or no bachelors degree) by sex. Start by estimating the following quantities:
+ - Proportions of Wisconsin people with a bachelors degree in each sex who ARE obese (note this implies the denominator of the ratio is the total number of people in each zip and sex *with* a bachelors degree)
+ - Proportions of Wisconsin people without a bachelors degree in each sex who ARE obese (note this implies the denominator of the ratio is the total number of people in each zip and sex *without* a bachelors degree)
+
+- Print out these values in a table with two rows - one for male and one for female, and three columns - one for sex, and one for each of the two estimated percentages noted above.
+- State any assumptions you need to make when carrying out these calculations. (Recall that you need to sum up totals of people before finding proportions.)
+
+
+(Hint: First, use `mutate()` to find in each zip and sex the estimated number of bachelors and non-bachelors. Then, estimate for each zip and sex the number of obese people with a bachelors degree by multiplying the number of bachelors with the rate of obesity (note this assumes these are independent, which is an assumption we have to make here). Repeat this step but for the people without a bachelors degree. Now, divide the number of obese people with a bachelors degree by the number of people with a bachelors degree to get the first proportion. Repeat this step for the people without a bachelors degree.
+
+Then, summarise across your dataset to estimate **for each sex, across all zips**, the total number of obese people with a bachelors degree, the total number of obese people without a bachelors degree, the total number of people with a bachelors degree, and the total number of people without a bachelors degree. Use these to produce these final quantities:
+
+- the estimated proportion of people with a bachelor degree who are obese (for EACH sex)
+- the estimated proportion of people without a bachelor degree who are obese (for EACH sex)
+
+Show these two final proportions. What do you observe?
+
+```{r}
+# insert code below
+proportions <- final_df %>%
+  group_by(sex) %>%
+  mutate(
+    with_bach = adult_n * pct_bach / 100,
+    without_bach = adult_n - with_bach,
+    obese_with_bach = with_bach * obese_p,
+    obese_without_bach = without_bach * obese_p
+  ) %>%
+  summarise(
+    total_obese_with_bach = sum(obese_with_bach),
+    total_obese_without_bach = sum(obese_without_bach),
+    total_with_bach = sum(with_bach),
+    total_without_bach = sum(without_bach)
+  ) %>%
+  mutate(
+    prop_obese_with_bach = total_obese_with_bach / total_with_bach,
+    prop_obese_without_bach = total_obese_without_bach / total_without_bach
+  ) %>%
+  select(sex, prop_obese_with_bach, prop_obese_without_bach)
+
+proportions
+
+```
+
+
+> OBSERVATIONS: The proportions of individuals with a bachelor's degree who are obese are lower than those without a bachelor's degree. The difference in obesity proportions between males and females with a bachelor's degree is minor. However, when looking at individuals without a bachelor's degree, it is evident that males have a larger obese population compared to females
+
+
+
+### 3
+
+Make a scatter plot that displays the *percentage* of a zip code aged 25+ with a bachelor's degree on the x-axis and the *percentage* obese on the y axis.
+- Use different colors for each sex and add a trend line or curve for each sex.
+- Create appropriate labels and titles for the plot.
+- Comment on any apparent patterns in the data.
+
+```{r}
+# insert code below
+library(ggplot2)
+
+scatter_plot <- ggplot(final_df, aes(x = pct_bach, y = obese_p, color = sex)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "Percentage with Bachelor's Degree",
+       y = "Percentage Obese",
+       color = "Sex") +
+  ggtitle("Relationship between Education and Obesity by Sex")
+scatter_plot
+```
+
+
+
+
+## Section B: stringr with exoplanets dataset
+
+The following block of code will read in the exoplanet data from the file *exoplanets-3sept2020.csv* (same dataset as lecture but a slightly different version), filter to include only confirmed exoplanets, select and rename a subset of variables, and add an index with the row number.
+
+```{r}
+planets = read_csv("exoplanets-3sept2020.csv")%>%
+  filter(default_flag == 1) %>%
+  select(pl_name, hostname, discoverymethod, disc_year, disc_facility,
+         sy_pnum, pl_rade, pl_bmasse, rowupdate) %>%
+  rename(planet=pl_name, star=hostname, method=discoverymethod,
+         facility=disc_facility, year=disc_year, number=sy_pnum,
+         radius=pl_rade, mass=pl_bmasse, update=rowupdate) %>%
+  mutate(index = row_number()) %>%
+  select(index, everything())
+```
+
+
+
+### 4
+
+Create and print a table which shows the number of exoplanets discovered that have the word "Kepler" as part of the planet name, grouped by `year` and `facility`.
+
+What year was the first of these exoplanets discovered by a facility *other than* the Kepler facility?
+
+```{r}
+# insert code below
+library(stringr)
+library(dplyr)
+
+kepler_exoplanets <- planets %>%
+  filter(str_detect(planet, "Kepler")) %>%
+  group_by(year, facility) %>%
+  summarise(number_of_exoplanets = n())
+
+kepler_exoplanets
+
+```
+
+> The first planet discovered by a facility other than Kepler was the W. M. Keck Observatory in 2013.
+
+
+
+### 5
+
+The column `update` in the exoplanet data set has character values where some entries have a date only, such as `5/14/14` and others have a date and time, such as `9/4/18 16:14`.
+
+Create a new column named `update_format` with the value "date" if the format is like `5/14/14`, "datetime" if the format is like `9/4/18 16:14`, and "other" if it is something else.
+
+Print out a summary table that counts the number of observations have each type of `update_formate`.
+
+```{r}
+# insert code below
+library(stringr)
+library(dplyr)
+
+planets <- planets %>%
+  mutate(update_format = case_when(
+    str_detect(update, "^\\d{1,2}/\\d{1,2}/\\d{2}$") ~ "date",
+    str_detect(update, "^\\d{1,2}/\\d{1,2}/\\d{2} \\d{1,2}:\\d{2}$") ~ "datetime",
+    TRUE ~ "other"
+  ))
+
+update_summary <- planets %>%
+  count(update_format)
+
+update_summary
+```
+
+> The table is created.
+
+
+
+### 6
+
+How many *distinct* star names begin with a number?
+
+```{r}
+# insert code below
+library(stringr)
+
+distinct_star_names <- planets %>%
+  filter(str_detect(star, "^\\d")) %>%
+  distinct(star) %>%
+  summarise(number_of_star_names = n())
+
+distinct_star_names
+```
+
+> RESPONSE:32
+
+
+
+### 7 (Optional, ungraded)
+
+Of the distinct star names that begin with a number,  create a bar plot of these leading numbers.  The height of the bars should indicate the number of stars for each leading number.
+
+- Display the bars in numerical order (lowest number to the left of the plot window), and include a tick mark and label (indicating the leading number) for each bar.
+- Be sure to include descriptive axis labels and a title.
+
+*Hint:  First create a variable with the leading number from the star names, then create the bar plot.  Be careful because some numbers have more than one digit.*
+
+- What are the name of the stars that have the most common leading number?  Print out a table with these star names.
+
+```{r}
+# insert code below
+
+```
+
+> REPLACE TEXT WITH YOUR RESPONSE
+
+
+
+### 8 (Optional, ungraded)
+
+The convention for naming planets is typically to take the name of the star and then add to the end a space and then a lower-case letter (e.g., b, c). However, not all planet names follow this convention.
+
+How many planet names do not follow this convention?
+
+(Hint: special care is required if the name of the star contains a symbol with special meaning in a regular expression, such as `+`. The easiest way to get around this is to use the `fixed()` function as shown in lecture. Alternatively, you can also add backslashes to escape the special characters in star names (if using this approach, you might want to create a column of escaped patterns before using `str_detect()` to filter planets.)
+
+```{r}
+# insert code below
+
+```
+
+> REPLACE TEXT WITH YOUR RESPONSE
+

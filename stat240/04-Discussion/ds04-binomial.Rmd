@@ -1,0 +1,136 @@
+---
+title: "STAT 240 Discussion 4"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE)
+library(tidyverse)
+source("ggprob.R")
+```
+
+## Group XXX 
+
+## Members Present
+
+- ADD THE NAMES OF EVERYONE PRESENT
+- MAKE THE NAME **BOLD** OF THE RESPONSIBLE PERSON TO UPLOAD THE FILES FOR THE GROUP
+
+## Members Absent
+
+- ADD NAMES OF ANY ABSENT MEMBERS
+
+## Questions
+
+
+### 1
+
+For each scenario, explain why the random variable does *not* have a binomial distribution.
+
+1. A bucket contains 10 colored tokens with five that are red and five that are blue. Four tokens are drawn at random from the bucket one at a time, but without replacing the tokens drawn. $X_1$ is the number of red tokens selected.
+
+> Basic assumption of Binomial distribution is each trial is independent and success or failure probability remains same. But in this case, if we draw sample without replacing then trials are not independent as well as success or failure probability varies for each draw.
+
+2. A fair coin is tossed repeatedly until the tenth head is tossed. $X_2$ is the number of tails tossed prior to the tenth head.
+
+> In this case, we are waiting for 10th head. So, it is better to use waiting time distribution. Because we dont know when to get the 10th head, we may get infinity tails or zero tail. Hence, we cant determine the probability of success in this case. Therefore, we dont use binomial distribution.
+
+3. Four buckets each contain a total of five tokens each, some red and some blue. The number of red tokens in the buckets are 1, 2, 3, and 4 with blue tokens making up the remainder. One token is drawn at random from each bucket. $X_3$ is the total number of red tokens drawn.
+
+> In this case, the random variable does not have a binomial distribution because the probabilities of success are not constant across trials.In a binomial distribution, the probability of success should be the same for each trial. However, in this scenario, the number of red tokens varies across the four buckets, resulting in different probabilities of drawing a red token from each bucket. Therefore, the conditions for a binomial distribution are not satisfied.
+
+### 2
+
+Let $X \sim \operatorname{Binomial}(25,0.4)$.
+
+#### A
+
+Calculate and report the mean $\mu=\mathrm{E}(X)$ and the standard deviation $\sigma=\sqrt{\operatorname{Var}(X)}$
+
+```{r}
+# insert code below
+
+```
+
+
+#### B
+
+Calculate $\text{P}(X \geq 14)$
+
+```{r}
+# insert code below
+
+```
+
+
+#### C
+
+Create a graph of the $\operatorname{Binomial}(25,0.4)$ distribution. Color the segments for $x=14,15,...,25$ red and use gray for the rest. Plot using `theme_minimal()`.
+
+
+(HINT: make sure you download the `ggprob.R` file available on the discussion page and put it in a folder called `scripts` which is placed in your main course folder (i.e. the `scripts` folder should be in the same folder as your `data` folder). This file has some functions written by Bret and Jessi that you can use to easily make these plots. Start your code with `gbinom(n, p)` where `n` and `p` are the size and probability of each trial. You can also add arguments `a=` and `b=` to set the drawing limits on the horizontal axis. Then, you can color sections of this by adding additional layers of `+ geom_binom_density(...)` with the same `n` and `p`, but with different `a` and `b` arguments and with an additional `color=` argument. This will allow you to draw a subset of the distribution with a different color. Repeat this for the other color as well.)
+
+```{r}
+# insert code below
+
+```
+
+
+
+### 3
+
+#### A
+
+Create a data frame with columns `n`, `p`, `x`, `mu`, and `prob` where:
+
+- `n` varies from 2 to 100 by twos (so each `n` value is even);
+- `p` equals 0.5;
+- `x` is $n/2$;
+- `mu` is the mean of the distribution;
+- `prob` is $P(X = x)$
+
+Show the first few rows using `head()`.
+
+```{r}
+# insert code below
+
+```
+
+
+#### B
+
+What is the relationship between `x` and `mu`?
+
+> REPLACE THIS TEXT WITH YOUR RESPONSE
+
+
+#### C
+
+Make a line graph of `prob` versus `n`.
+
+```{r}
+# insert code below
+
+```
+
+
+#### D
+
+Describe the pattern: how does the probability that a random variable is equal to the mean (when the mean is a possible value) change as $n$ increases?
+
+> REPLACE THIS TEXT WITH YOUR RESPONSE
+
+
+
+### 4
+
+Draw graphs of the binomial distributions for $n=500$ and $p = 0.5$ and $p = 0.005$, scaled so that the x axis is restricted to where the probabilities are relatively large (one graph for each of the two $p$'s). Overlay each plot with a red normal density with a mean and standard deviation that matche the mean and standard deviation of the corresponding binomial distribution (i.e. compute what the mean and standard deviation of each binomial variable is, then draw a normal on top with those values).
+
+(HINT: If you have `ggprob.R` script downloaded and loaded in, start with `gbinom(n,p)` where `n` and `p` are the size and probability, then add `scale=TRUE` in as a third argument (this allows the function to scale to an appropriate range automatically). Then, add the layer `+ geom_norm_density(m,s)` where `m` and `s` are the mean and standard deviations you have computed. You can also add in the argument `color=` here to set the color of this curve.)
+
+Compare the skewness of the distributions. Comment on how this might help explain the differences in the right tail probabilities from Problem 3.
+
+```{r}
+# insert code below
+
+```

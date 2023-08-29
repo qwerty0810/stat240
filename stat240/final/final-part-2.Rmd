@@ -1,0 +1,243 @@
+---
+title: "Final - Part 2"
+author: "Gurusharan Kunusoth"
+output: html_document
+--- 
+
+<style>#header{margin-bottom:30px;}div.level2{margin:40px 0 80px;}div.level3{margin-top:40px;}</style>
+
+```{r setup,include=F}
+knitr::opts_chunk$set(echo=T,message=F,warning=F,fig.height=5,fig.width=7,fig.align="center",error=TRUE)
+library(tidyverse)
+```
+
+
+
+
+# Question 1
+
+
+For this first question, we are going to be looking at a dataset of passengers on the famous Titanic ship. The code to load the dataset is shown below. If you run into issues with the code, or if this chunk takes too long to run, try [downloading the dataset](https://raw.githubusercontent.com/datasciencedojo/datasets/master/titanic.csv) directly instead, and change the path to point to your local version of the file.
+
+```{r}
+titanic = read_csv("https://raw.githubusercontent.com/datasciencedojo/datasets/master/titanic.csv")
+```
+
+
+
+
+## Part A <small>(5pts)</small>
+
+
+Perform the following data operations:
+
+1. Change the `Survived` column to be "Yes" or "No" instead of 1 and 0. Note that 1 denotes survived.
+2. Change the `Pclass` column (which indicates the fare class of the passenger, i.e. 1st class, 2nd class, 3rd class) to be character type.
+3. Drop rows with `Age` missing, or less than 20, or older than 60 to just focus on the adults.
+4. Now, focus on just the `Pclass`, `Survived`, and `Sex` columns. For each passenger class, find the following:
+   - number of surviving passengers of each sex
+   - total number of passengers of each sex
+   - proportion of passengers of each sex in that class that survived
+
+Please **print these statistics** in a nice and neat summary table output, as well as **make a quick plot to help visualize** the data. I recommend a `geom_col` plot showing survival proportion on the vertical axis, passenger class on the horizontal axis, and the bars filled in according to sex. Don't forget to add a title and proper labels!
+
+Hint: add the `position="dodge2"` argument to `geom_col` to unstack the bars!
+
+```{r}
+# show work here
+titanic$Survived <- ifelse(titanic$Survived == 1, "Yes", "No")
+
+titanic$Pclass <- as.character(titanic$Pclass)
+
+titanic <- titanic %>% filter(!is.na(Age) & Age >= 20 & Age <= 60)
+
+summary_stats <- titanic %>% 
+  group_by(Pclass, Sex, Survived) %>% 
+  summarise(Count = n()) %>% 
+  spread(key = Survived, value = Count, fill = 0) %>% 
+  mutate(Total = Yes + No, Proportion_survived = Yes / Total)
+
+print(summary_stats)
+
+ggplot(summary_stats, aes(x = Pclass, y = Proportion_survived, fill = Sex)) +
+  geom_col(position = "dodge2") +
+  labs(title = "Proportion of Surviving Passengers by Sex and Class",
+       x = "Passenger Class",
+       y = "Proportion Survived") +
+  scale_fill_manual(values = c("blue", "pink"))
+```
+
+
+
+
+## Part B <small>(5pts)</small>
+
+
+Using your results from the previous part, conduct hypothesis tests **for each class** to determine whether there is a significant difference in probability of survival between males and females. Report the p-values of each test and discuss/interpret them. You MUST use your summary statistics from part A and show all work for full credit!
+
+What did you notice? For each class is there evidence to show a significant difference in survival rates between the sexes? Additionally, is there any evidence that these survival rates also differed by passenger class, or were different passenger classes treated differently?
+
+```{r}
+# show work here
+library(stats)
+
+results <- list()
+
+for(class in unique(summary_stats$Pclass)){
+  female_stats <- summary_stats %>% filter(Pclass == class & Sex == "female")
+  male_stats <- summary_stats %>% filter(Pclass == class & Sex == "male")
+  
+  prop.test(x = c(female_stats$Yes, male_stats$Yes),
+            n = c(female_stats$Total, male_stats$Total),
+            alternative = "two.sided",
+            correct = FALSE) -> test
+  
+  results[[class]] <- test
+}
+
+lapply(results, function(x) x$p.value)
+```
+
+
+
+
+
+# Question 2
+
+
+For this second question, we're going to revisit the Friends TV show dialogue dataset that we saw in the practice midterm, but use it in a new and different way than before. Hopefully you all studied well and are very familiar with the dataset at this point. Of course, you're welcome to find the practice midterm as well as the solutions file for reference (since they're part of the course materials), although we will only borrow minimally from it.
+
+Below is a chunk that loads in the file. Similar to question 1, if you have issues, please [download the dataset](https://pages.stat.wisc.edu/~bwu62/friends.csv) separately then change the path to link to your local file instead.
+
+```{r}
+friends = read_csv("https://pages.stat.wisc.edu/~bwu62/friends.csv")
+```
+
+
+
+
+## Part A <small>(5pts)</small>
+
+
+Perform the following operations:
+
+1. First, filter out just the dialogue lines spoken by one of the main characters (i.e. Chandler, Joey, Monica, Phoebe, Rachel, and Ross).
+2. Remove the last name from the speaker name so we only have the first name (e.g. instead of Chandler Bing, we just want Chandler, this helps keeps things less cluttered)
+3. Next, add a column counting the number of words in each line of dialogue.
+   - a crude but sufficient way of doing this is to use the `str_count` function with `"\\w+"` as the regex pattern
+   - this `"\\w+"` pattern looks for sequences of "word"-type characters in a row (like upper and lower case letters) that are not separated by non-"word"-type characters (like spaces or punctuation), which will give us a good estimation of the number of words in each line.
+4. Drop all other columns except the first name and the number of words columns
+
+Now, as usual, we want to **summarize and visualize** this result. This time, I will ask you to choose an effective and useful set of summary statistics to compute and print out, as well as an appropriate plot type to employ to visualize the data.
+
+ - For the summary statistics, you want to at least have some kind of statistic for the center (e.g. mean, median, etc.) and for the spread (e.g. sd, iqr, etc.) but feel free to do whatever. Do NOT however choose 20 different statistics to all print out. Pick maybe 2-4 that you think are the MOST useful/interesting and just show those please.
+ - For the plot, similar common sense rules apply. You want to pick a plot type that will make it easy to compare and contrast the distributions of sentence word-length for each character. Choose your plot type wisely, and don't forget the usual title and labels!
+
+```{r}
+# show work here
+friends_filtered <- friends %>%
+  filter(str_detect(speaker, "Chandler|Joey|Monica|Phoebe|Rachel|Ross")) %>%
+  mutate(first_name = str_extract(speaker, "^[A-Z][a-z]+"),
+         word_count = str_count(text, "\\w+")) %>%
+  select(first_name, word_count)
+
+summary_stats <- friends_filtered %>%
+  group_by(first_name) %>%
+  summarise(mean_words = mean(word_count),
+            median_words = median(word_count),
+            sd_words = sd(word_count),
+            iqr_words = IQR(word_count))
+
+print(summary_stats)
+
+ggplot(friends_filtered, aes(x = first_name, y = word_count, fill = first_name)) +
+  geom_boxplot() +
+  labs(title = "Distribution of Words per Line by Character",
+       x = "Character",
+       y = "Number of Words per Line") +
+  theme_minimal()
+```
+
+
+
+
+## Part B <small>(5pts)</small>
+
+
+So out of all the friends, who's the most "rambling"? Or are they all pretty comparable? **Note:** "rambling" here is used to denote **the average number of words per line of dialogue in the dataset**, NOT how many times someone speaks in the show.
+
+For each character, construct a 95% confidence intervals of their average number of words spoken per line of dialogue and make a confidence interval plot just like we did for homework/discussion. Show the intervals with horizontal `geom_segment` lines with a dot showing the point estimate. Add a vertical line showing the mean of all the friends together.
+
+```{r}
+# show work here
+stats <- friends_filtered %>%
+  group_by(first_name) %>%
+  summarise(mean_words = mean(word_count),
+            se = sd(word_count) / sqrt(n()))
+
+stats <- stats %>%
+  mutate(lower = mean_words - 1.96 * se,
+         upper = mean_words + 1.96 * se)
+
+overall_mean <- mean(friends_filtered$word_count)
+
+ggplot(stats, aes(x = first_name, y = mean_words)) +
+  geom_point() +
+  geom_segment(aes(x = first_name, xend = first_name, y = lower, yend = upper)) +
+  geom_vline(aes(xintercept = overall_mean), color = "red", linetype = "dashed") +
+  labs(title = "95% Confidence Interval of Average Words per Line by Character",
+       x = "Character",
+       y = "Average Number of Words per Line") +
+  theme_minimal()
+```
+
+
+
+
+
+# Question 3
+
+
+This question uses data from the 2020 presidential election, provided by Cook political report, as well as some data built into R about the sizes of different states. The data import as well as some basic preprocessing has been done for you already below.
+
+```{r}
+ votes = read_csv("https://pages.stat.wisc.edu/~bwu62/popular_vote.csv") %>% 
+  select(state,dem_this_margin) %>% mutate(dem_this_margin = as.numeric(str_replace(dem_this_margin,"%",""))/100)
+states = tibble(state=state.name, area=state.area)
+
+print(votes)
+print(states)
+```
+
+
+
+
+## Exercise <small>(5pts)</small>
+
+
+First, **join and plot the data**, showing the democratic party margin `dem_this_margin` (i.e. what percent higher the democratic votes are compared to republican votes) against the **log area** of each state. You can do this either by using `log10(area)` directly as the aesthetic OR by adding a `scale_x_log10()` or `scale_y_log10()` (depending on how you set things up). As always, don't forget to include a good title and labels!
+
+Comment on the plot, what do you notice?
+
+Finally, fit a linear regression model, using log-area as a predictor and democratic margin as a response. Report and also discuss the lm summary output. Did you find a significant relationship? (hint: use a coefficient t-test!) Did you notice anything else interesting about the fit? Report a 95% confidence interval for the slope.
+
+Check the assumptions of your model, are they well met?
+
+```{r}
+# show work here
+
+combined_data <- inner_join(votes, states, by = "state")
+
+ggplot(combined_data, aes(x = log10(area), y = dem_this_margin)) +
+  geom_point() +
+  labs(title = "Democratic Party Margin vs. Log(Area) of States",
+       x = "Log(Area)",
+       y = "Democratic Party Margin") +
+  theme_minimal()
+
+model <- lm(dem_this_margin ~ log10(area), data = combined_data)
+summary(model)
+
+confint(model, "log10(area)", level = 0.95)
+```
+

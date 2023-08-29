@@ -1,0 +1,102 @@
+---
+title: "Project Draft"
+output: html_document
+date: "2023-07-29"
+---
+
+```{r setup, include=FALSE}
+# Load the necessary libraries
+library(ggplot2)
+library(dplyr)
+knitr::opts_chunk$set(echo = TRUE)
+```
+---
+
+## Members
+
+- Drew Levin
+- Isabelle Abendroth
+- Maximillian Hansen
+- **Megha Pethari**
+
+## Introduction
+
+Heart Disease, a predominant form of Cardiovascular Disease, continues to be a leading cause of death worldwide. An understanding of its potential risk factors is integral for its prevention and management. One such factor, age, plays a critical role in cardiovascular health. The body's physiological changes with advancing age contribute to an increased likelihood of disease. This analysis sets out to explore whether age significantly differs between individuals diagnosed with heart disease compared to those without the condition.
+
+---
+
+## Background
+
+The dataset used for this analysis is obtained from Kaggle, and was primarily collected to find key indicators of heart disease. The dataset consists of several medical, demographic, and lifestyle factors. In this study, 'age' is our primary variable of interest, and 'num', which indicates the presence or absence of heart disease, is our grouping variable. For ease of analysis, we have transformed 'num' into a binary variable 'heart_disease'.
+
+---
+
+## Analysis
+
+```{r include=FALSE}
+# Read in the data
+heart_data <- read.csv("heart.csv")
+```
+
+Our analysis begins by exploring the age distribution among individuals with and without heart disease. Using descriptive statistics such as mean, median, and standard deviation, we glean an initial understanding of the age distribution within these groups.
+
+```{r include=FALSE} 
+
+# Recode 'num' to binary
+heart_data <- heart_data %>%
+  mutate(heart_disease = ifelse(num > 0, 1, 0))
+
+# Descriptive statistics
+heart_data %>% 
+  group_by(heart_disease) %>% 
+  summarise(
+    count = n(),
+    mean_age = mean(age, na.rm = TRUE),
+    sd_age = sd(age, na.rm = TRUE),
+    median_age = median(age, na.rm = TRUE)
+  )
+
+```
+
+
+On conducting the analysis, we found that the mean age of individuals without heart disease stands at 50.5, while for those with heart disease, it is 55.9.
+
+We hypothesize that there is a significant difference in the mean ages of individuals diagnosed with heart disease compared to those without the condition.
+
+```{r include=FALSE}
+# Two-sample t-test
+t.test(age ~ heart_disease, data = heart_data)
+```
+
+Subsequently, we deployed a two-sample t-test to test our hypothesis. The results, with a p-value less than 2.2e-16, demonstrate a significant difference in mean ages.
+
+The culmination of our analysis is a visual representation through a boxplot. The plot illustrates the distribution of age across the two categories of 'heart disease presence', thus facilitating an intuitive understanding of the relationship between age and heart disease.
+
+```{r}
+# Boxplot
+ggplot(heart_data, aes(x = factor(heart_disease), y = age)) +
+  geom_boxplot() +
+  labs(x = "Heart Disease Presence", y = "Age", title = "Age Distribution by Heart Disease Presence")
+
+```
+
+
+## Discussion
+
+Our analysis clearly demonstrates a significant disparity in age between individuals diagnosed with and without heart disease. The summary statistics underscore that the mean age of individuals with heart disease is appreciably higher than those without the disease.
+
+The conclusions from the two-sample t-test further corroborate this finding. A p-value significantly less than 0.05 establishes a statistically significant difference in the mean ages of individuals with and without heart disease.
+
+The boxplot visually bolsters our findings, graphically illustrating a clear divergence in the age distribution between individuals with and without heart disease.
+
+Despite its insights, the analysis presents some limitations. It fails to consider other variables which could also be influencing the prevalence of heart disease. Future work could benefit from a multivariate analysis approach, exploring interactions between age and other variables.
+
+This analysis raises further questions: What other variables significantly differ between individuals with and without heart disease? How does the impact of age on heart disease vary across different demographics? These could be addressed in future research.
+
+The practical implications of this study suggest that age should be a major consideration when assessing heart disease risk. Health interventions might need to be age-specific to maximize effectiveness.
+
+In conclusion, age significantly influences the presence of heart disease. Future research could explore how this variable, in conjunction with others, could be leveraged in the predictive modelling of heart disease risk.
+
+
+## References
+1. Heart Disease UCI Dataset. Kaggle. Available at^[https://www.kaggle.com/datasets/redwankarimsony/heart-disease-data].

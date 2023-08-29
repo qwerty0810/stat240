@@ -1,0 +1,61 @@
+---
+title: "Project Proposal"
+output: html_document
+---
+
+# Project Proposal
+
+The project proposal should be a knitted R Markdown document which contains the following elements.
+
+## Names of Group Members
+
+- Petros Airapetyan
+- Gurusharan Kunusoth
+- Josiah Lozano
+- Alexandra Voss
+
+## Communication and Collaboration
+
+We can meet pretty much any day of the week after 4 pm. If anything comes up, then we can communicate with each other and see what other times or days work best for us. We will also be communicating through Microsoft Teams because it can allow us to send and access each other's files swiftly.
+
+## Questions of Interest
+
+1. How has the frequency of quarterbacks scrambling changed over the period of time 2000-2020, and has it increased or decreased more or less throughout those years?
+2. How have the outcomes of games changed when the quarterback scrambles more than 7 times in a game?
+3. What team in which year had the most amount of qb scrambles?
+4. How have QB scrambles affected the team's scoring/yards gained per game?
+
+## Source(s) of Data
+
+- [DoltHub NFL Play-by-Play Data](https://www.dolthub.com/repositories/Liquidata/nfl-play-by-play)
+- [GitHub NFLfastR Data](https://github.com/guga31bb/nflfastR-data)
+
+## Data Description
+
+- **Who collected the data?**
+  Sebastian Carl, Ben Baldwin, Lee Sharpe, Maksim Horowitz, Ron Yurko, Samuel Ventura, Tan Ho, John Edwards.
+
+- **How were the data collected?**
+  [Learn more](https://operations.nfl.com/gameday/technology/nfl-next-gen-stats/#:~:text=NFL%20Next%20Gen%20Stats%20%E2%80%94%20developed,online%20and%20during%20game%20telecasts.)
+  Stats have been collected from various technologies, such as Zebra Technologies, which is based on Amazon infrastructure.
+
+- **What are key variables in the data set, what do they measure, and how are they related to your key questions?**
+  Some key variables in the set are the years from 2000-2020, games and what day each of the games were played on, the amount of games played in the season, how many times qb scrambled each quarter or game.
+  
+  They are related to the questions because we can determine certain variables and derive them from one another to get our answer.
+
+- **If the data may be thought of as a sample from some larger population, what is that larger population?**
+  The samples recorded come from the teams. If the data were to be sought as a sample from a larger population, the larger population would be the entire NFL rather than just one team.
+
+
+## Graph Description
+
+- **Include a description of a graph which will show how the data informs the primary question of interest.**
+  The graph is going to be a line plot depicting the years (x) and how many times different quarterbacks have scrambled throughout the years (y). When depicting this kind of data with the quarterback scrambling, line plot is the best way to show the increase or decrease in scrambles throughout the years which can answer our research question.
+
+## Model and Inference
+
+- **Include a description of a possible model for the data and associated methods of inference or prediction.**
+  We can use a summary table based on the quarterback's scramble and the trend of it through the years. We can figure out the mean, median, and standard deviation through the data points as well and get our answers. Furthermore, after identifying the averages, we can also see what the possible trend could be after 5 or 10 years in the NFL in terms of quarterbacks that are scrambling.
+
+  We will add line plots to visualize the trend of quarterback scrambles throughout the years, and compare those results to the success rate of their respective teams.

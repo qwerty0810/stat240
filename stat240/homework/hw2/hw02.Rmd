@@ -1,0 +1,444 @@
+---
+title: "Homework 2"
+author: "Gurusharan Kunusoth"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE)
+library(tidyverse)
+library(lubridate)
+library(scales)
+library(ggplot2)
+
+```
+
+
+### Preliminaries
+
+Code to read in data assumes: (1) that you have the following directories and files, where COURSE is the path to your top course directory; (2) that you have set the *hw03* directory to be your working directory; and (3) that you have installed the **tidyverse** package.
+
+- Directories
+    - COURSE/homework
+    - COURSE/homework/hw03
+    - COURSE/data
+- Files
+    - COURSE/homework/hw03/hw03.Rmd
+    - COURSE/data/madison-weather-official-2020.csv
+    - COURSE/data/exoplanets_default_2021-06-15.csv
+    - COURSE/data/ORD-2017.csv
+    - COURSE/data/ORD-2018.csv
+    - COURSE/data/ORD-2019.csv
+    - COURSE/data/ORD-2020.csv
+    - COURSE/data/ORD-2021.csv
+
+
+- Replace the text "YOUR NAME HERE" in the YAML section with your name.
+- Edit this file, answer the questions, knit, and submit your solutions by uploading the resulting HTML file to the course Canvas site.  Be sure to review your HTML and ensure that your solutions appear as you expect prior to submitting.
+
+
+### Aims
+- Practice data visualization using ggplot2
+- Practice data wrangling with dplyr
+- Practice reading in data and working with dates
+
+
+
+### Problems
+
+The following R chunk reads in the default exoplanets data,
+selects some variables, and changes some variable names.
+
+```{r read-planet-data}
+## Read in the csv file
+## Select some variables that we will work with and rename them
+## Note that the file begins with 100 meta-data lines that this code skips
+## The argument `comment = "#"` fails as the symbol '#' appears in some of the websites included in the data set which are then interpreted as comments, preventing the full case to be read in as data
+planets = read_csv("exoplanets_default_2021-06-15.csv",
+                   skip = 100) %>%
+  select(pl_name, hostname, discoverymethod,
+         disc_year, sy_pnum, pl_rade, pl_bmasse) %>%
+  rename(planet = pl_name,
+         star = hostname,
+         method = discoverymethod,
+         year = disc_year,
+         number = sy_pnum,
+         radius = pl_rade,
+         mass = pl_bmasse)
+```
+
+
+
+
+### 1
+
+Using the exoplanet data table `planets`, filter so that you only use planets discovered by the radial velocity method.
+Remove cases where either of the variables `year` or `mass` (or both) are missing.
+Create a table with a data summary with the number of planets discovered and the minimum mass of these planets by year.
+Then make a scatterplot of the data such that (i) the size of points are proportional to the number of planets discovered that year (hint: add the aesthetic `size=` inside `aes()` and set it equal to your number of planets discovered column in your summary table), (ii) the y-axis is on the log10 scale (hint: add on `+scale_y_continuous()` as a layer), (iii) the axes have descriptive labels, (iv) and the plot contains an informative title.
+
+In addition to the graphic, respond to the question below the R chunk.
+
+```{r}
+### Add your code here
+filtered_planets <- planets %>%
+  filter(method == "Radial Velocity", !is.na(year), !is.na(mass))
+summary_table <- filtered_planets %>%
+  group_by(year) %>%
+  summarize(number_discovered = n(), min_mass = min(mass))
+scatterplot <- ggplot(summary_table, aes(x = year, y = min_mass, size = number_discovered)) +
+  geom_point() +
+  scale_y_continuous(trans = "log10") +
+  labs(x = "Year", y = "Minimum Mass (log10)", title = "Minimum Mass of Planets Discovered by Radial Velocity") 
+scatterplot
+
+```
+
+**Describe the trend between year and minimum mass of planet discovered using Radial Velocity.**
+
+The initial 10-15 years witnessed a significant decrease in the minimum mass, followed by a more stable trend in recent years. There has even been a slight increase since 2020, indicating a shift towards greater consistency.
+
+
+### 2
+
+Using the `planets` data set created at the beginning of the assignment, determine which methods have been used to discover fewer than 20 planets each.
+Remove the planets discovered by those methods (with fewer than 20 exoplanet  discoveries), and for the remaining planets, summarize ***for each year***, the number of planets and the proportion of planets discovered by each method.
+**Proportions should sum to one in each year**.
+
+This data summary should have one row for each year and method (if the method was used in that year) and columns with the names `year`, `method`, `n`, and `proportion`.  Arrange the data summary by year, with the earliest years at the top of the table.
+*(Hint: you may find it helpful to create a `total` column with the total number of exoplanets discovered each year repeated for each row to help calculate the proportion.)*
+
+(Extra hints: First, identify which methods had more than 20 discoveries, then filter out the original dataset to only discoveries made using those methods. Then, group by both year and method and tally to get the counts (since you want to look at how many were discovered by each method in each year) and use a sum in a mutate to find the total number of discoveries in each year (note this sum will run in each group and add a column with this). Then, divide in another mutate to find the proportion each method accounted for in each year, and you should have the desired data frame. You can then arrange and plot this.)
+
+
+```{r}
+method_counts <- planets %>%
+  group_by(method) %>%
+  summarize(total_discovered = n()) %>%
+  filter(total_discovered < 20)
+filtered_planets <- planets %>%
+  filter(!method %in% method_counts$method)
+summary_table <- filtered_planets %>%
+  group_by(year, method) %>%
+  tally() %>%
+  mutate(total = sum(n)) %>%
+  mutate(proportion = n / total)
+```
+
+
+#### 2A
+
+Report the dimensions of this data summary. Print the first 10 rows and all columns.
+
+```{r}
+dim(summary_table) 
+head(summary_table, 10)  
+```
+
+
+#### 2B
+
+Using the data summary, create and display a bar plot with the year on the x axis and the proportion of discovered planets on the y axis.  Let each year have a single bar that extends from a proportion of 0 to 1, with sections of each bar filled with a color by method according to the proportion of exoplanets each method discovered in that year.
+Add appropriate axis labels and plot title.
+
+```{r}
+
+bar_plot <- ggplot(summary_table, aes(x = as.factor(year), y = proportion, fill = method)) +
+  geom_bar(stat = "identity", position = "fill") +
+  labs(x = "Year", y = "Proportion of Discovered Planets", title = "Proportion of Planets Discovered by Method and Year") +
+  scale_fill_brewer(palette = "Set3")  
+bar_plot
+```
+
+#### 2C
+
+Which method was most successful with the earliest discoveries of exoplanets, and which method has supplanted that method in relative popularity in recent years?
+Radial velocity was most successful with the earliest discoveries of exoplanets, and Transit method has been most popular in the recent years.
+
+
+
+### 3
+
+Using only planets for which the radius has been estimated (i.e. radius is not missing), create a table that shows *for each year* the number of planets, the minimum radius, the median radius, and the maximum radius. Then, make a visualization of this table showing the following:
+
+Using this table, create a graphic that has the following:
+
+- Radius summaries on the y axis and discovery year on the x axis
+- Add a line plot with blues lines connecting the maximum radius by year
+- Add a line plot with purple lines connecting the median radius by year
+- Add a line plot with red lines connecting the minimum radius by year
+- Median radius versus year displayed as points with the size of each point proportional to the number of observations from that year
+- Add appropriate axis labels and plot title.
+
+
+```{r}
+## Add your code here
+radius_summary <- planets %>%
+  filter(!is.na(radius)) %>%
+  group_by(year) %>%
+  summarize(number = n(),
+            min_radius = min(radius),
+            median_radius = median(radius),
+            max_radius = max(radius))
+radius_plot <- ggplot(radius_summary, aes(x = year)) +
+  geom_line(aes(y = max_radius), color = "blue") +
+  geom_line(aes(y = median_radius), color = "purple") +
+  geom_line(aes(y = min_radius), color = "red") +
+  geom_point(aes(y = median_radius, size = number)) +
+  labs(x = "Year", y = "Radius", title = "Radius Summaries by Year") +
+  scale_size(range = c(1, 10))
+radius_plot
+```
+
+
+
+
+### 4
+
+A small number of planets have both an estimated mass AND an estimated radius less than those of the Earth.  What are the names of these planets, what method(s) were used to detect them, and in what year were they discovered?
+
+- Create a data summary table with the star name, planet name, method, year, mass, and radius of the planets that have **both** an estimated mass < 1 Earth mass and an estimated radius < 1 Earth radius.
+- Order the rows increasing by mass.
+- Print the entire table.
+
+```{r}
+## Add your code here
+summary_table <- planets %>%
+  filter(mass < 1, radius < 1, !is.na(mass), !is.na(radius)) %>%
+  select(star, planet, method, year, mass, radius) %>%
+  arrange(mass)
+summary_table
+```
+
+
+
+### 5
+
+Use the official Madison weather data (`madison-weather-official-2020.csv`).
+
+For each date where there is no missing data for precipitation (`prpc`) or average temperature (`tavg`), define a new variable called `any_prcp` so that `any_prcp` is "Precipitation" for dates when there is precipitation and `any_prcp` is "No precipitation" on dates when there is no precipitation.
+
+(Hint: Try the `ifelse()` function in a mutate, and use `prcp==0` as the test condition (don't forget to set the appropriate values that are returned if the condition is true or false). See [link1](https://www.datamentor.io/r-programming/ifelse-function/) or [link2](https://www.programiz.com/r/ifelse-function) for more details.)
+
+For each year, calculate the average temperature for all the days that had precipitation and the average temperature for all the days that did not have any precipitation.
+
+Display a scatterplot of with these averages on the y-axis versus year on the x-axis.  Color the points based on their value of `any_prcp`.  Add clear axis labels and a descriptive title.
+Note:  you can remove the legend label with `labs(color=NULL)`.
+
+```{r}
+official = read_csv("madison-weather-official-2020.csv")
+
+# insert rest of your code below
+official = read_csv("madison-weather-official-2020.csv")
+official <- official %>%
+  mutate(date = ymd(date))
+official <- official %>%
+  mutate(any_prcp = ifelse(prcp > 0, "Precipitation", "No precipitation"))
+filtered_data <- official %>%
+  filter(!is.na(prcp), !is.na(tavg))
+average_temp <- filtered_data %>%
+  group_by(year = year(date), any_prcp) %>%
+  summarize(avg_temp = mean(tavg))
+scatterplot <- ggplot(average_temp, aes(x = year, y = avg_temp, color = any_prcp)) +
+  geom_point() +
+  labs(x = "Year", y = "Average Temperature", title = "Average Temperature with and without Precipitation") +
+  labs(color = NULL)
+
+scatterplot  
+```
+
+
+
+
+
+### 6
+
+Use the official Madison weather data (`madison-weather-official-2020.csv`).
+
+#### 6A
+
+The code below determines the average maximum and minimum temperatures for each day of the year for the period from 2001 -- 2020.
+
+```{r}
+temp = official %>%
+  mutate(year = year(date),
+         month = month(date, label = TRUE),
+         day = day(date)) %>%
+  filter(year >= 2001) %>%
+  group_by(month, day) %>%
+  summarize(tmax = mean(tmax),
+            tmin = mean(tmin))
+```
+
+Graph these values with line plots, one for maximum using red lines, one for minimum using blue lines, for each day of the month with a different facet for each month of the year.  Add clear axis labels and a descriptive title.
+
+```{r}
+# insert code here
+
+temp_plot <- temp %>%
+  mutate(month = factor(month, levels = month.abb)) %>%
+  ggplot(aes(x = day, y = tmax, color = "Maximum Temperature")) +
+  geom_line(color = "red") +
+  geom_line(aes(y = tmin, color = "Minimum Temperature"), linetype = "dashed") +
+  facet_wrap(~month, ncol = 3) +
+  labs(x = "Day", y = "Temperature", title = "Average Maximum and Minimum Temperatures by Day") +
+  scale_color_manual(values = c("Maximum Temperature" = "red", "Minimum Temperature" = "blue"),
+                     labels = c("Maximum Temperature", "Minimum Temperature")) +
+  theme(legend.position = "bottom")
+temp_plot
+```
+
+#### 6B
+
+Find the five days of the year which have the smallest differences between the average high and low temperatures using data from 2001 -- 2020. Display these values (i.e., month, day, average high temperature, average low temperature, and the difference) in a table, ordered with the smallest differences at the top.
+
+(Hint: Create a new column showing the differences, then use `slice_min()` with the appropriate `n=` argument value.)
+
+```{r}
+temp_diff <- temp %>%
+  mutate(diff = tmax - tmin)
+smallest_diff <- temp_diff %>%
+  slice_min(order_by = diff, n = 5)
+smallest_diff
+```
+
+
+
+
+### Preprocessing for question 7-9 (Already done for you!)
+
+The next questions involves five data sets of international flights arriving to Chicago's O'Hare airport from January 1, 2017 through December 31, 2021 with one separate file for each year.
+Each file has been cleaned from the original HTML.
+
+We have done the following preprocessing steps for you, but ***please read the code carefully and run it yourself line by line to make sure you understand what it's doing and how it works!***
+  - Read in the five data sets.
+  - Use `bind_rows()` to combine these data sets into a single data set.  Note that you may need to adjust the format for some of the variables (e.g., `date`) for consistency among the data sets.
+  - Add columns for *year*, *month* (character valued, use month abbreviations, Jan-Dec), *day* (day of the month), and *wday* (day of the week, character valued, use day abbreviations, Sun - Sat).
+  - Reorder the variables so that these new variables all appear directly after the date column.
+  - Remove the terminal variable.
+  - Rename *all_total* to *passengers*, *all_flights* to *flights*, and *all_booths* to *booths*.
+  - Arrange the rows by date and hour.
+  - Remove the individual data sets from each individual year (use `rm()`).
+  - Print the first 5 rows of the data frame.
+
+For the remaining questions, simply use the resulting `ord` data frame.
+
+```{r}
+ord2017 = read_csv("ORD-2017.csv")
+ord2018 = read_csv("ORD-2018.csv",
+                   col_names = names(ord2017), skip = 1) %>%
+  mutate(date = mdy(date))
+ord2019 = read_csv("ORD-2019.csv") %>%
+  mutate(date = mdy(date))
+ord2020 = read_csv("ORD-2020.csv")
+ord2021 = read_csv("ORD-2021.csv")
+
+
+ord = bind_rows(ord2017, ord2018, ord2019, ord2020, ord2021) %>%
+  mutate(year=year(date),
+         month=month(date, label=TRUE),
+         day=day(date),
+         wday=wday(date,label=TRUE)) %>%
+  select(-terminal) %>%
+  select(airport, date, year, month, day, wday, everything()) %>%
+  arrange(date, hour) %>%
+  rename(passengers = all_total,
+         flights = all_flights,
+         booths = all_booths)
+
+rm(ord2017, ord2018, ord2019, ord2020, ord2021)
+
+dim(ord)
+
+ord %>% print(n=5)
+```
+
+
+
+
+### 7
+
+Are there any dates in the range from January 1, 2017 through December 31, 2021 that are missing? If so, how many days? (Bonus: which ones?)
+
+```{r}
+total_days <- as.integer(difftime(as.Date("2022-01-01"), as.Date("2017-01-01"), units = "days"))
+unique_dates <- unique(ord$date)
+num_unique_dates <- length(unique_dates)
+num_missing_days <- total_days - num_unique_dates
+cat("Number of missing days:", num_missing_days, "\n")
+if (num_missing_days > 0) {
+  all_dates <- seq(as.Date("2017-01-01"), as.Date("2021-12-31"), by = "day")
+  missing_dates <- setdiff(all_dates, unique_dates)
+  cat("Missing dates:\n")
+  print(missing_dates)
+}
+```
+5 missing days: 17659 18197 18198 18199 18300
+
+
+
+### 8
+
+>  Analysis of monthly international arrivals.
+
+#### 8A
+- Display the total number of passengers by month and year with a bar chart where month is the primary variable on the x-axis and there is a separate bar (i.e, not stacked) and filled with a different color for each year.    
+  (Hint: You can do this by setting `fill=as.character(year)` as an aesthetic inside `aes()` (this uses it as a group differentiated by fill color, and sets the coloring method to be categorical instead of numeric (which gives nicer contrast));  and then adding `+geom_col(position = "dodge")` as a plot layer, which creates the unstacked bar plot. (Note `geom_col()` and `geom_bar()` do different things (see help page for more details on this)))
+- Add meaningful axis labels and a title to this graph.
+- Change the scale on the y axis so that values are printed as numbers with commas and not using scientific notation. (See the help for the **ggplot2** function `scale_y_continuous()` and the **scales** function `label_comma()`.)
+
+```{r}
+
+passengers_monthly <- ord %>%
+  group_by(year, month) %>%
+  summarize(total_passengers = sum(passengers))
+ggplot(passengers_monthly, aes(x = month, y = total_passengers, fill = as.character(year))) +
+  geom_col(position = "dodge") +
+  scale_y_continuous(labels = label_comma()) +
+  labs(x = "Month", y = "Total Passengers", title = "Total Number of Passengers by Month and Year") +
+  theme_minimal()
+```
+
+#### 8B
+In the 2020 and 2021 months, how do the passenger totals compare to the previous years?  Describe any other patterns you notice.
+
+In 2020 and 2021, the passenger totals are way less when compared to the previous years. This is likely due to COVID.
+
+
+
+
+### 9
+
+> Investigate the average number of passengers per day of the week.
+
+#### 9A
+- Create a table that contains the average number of passengers arriving for each day of the week (Sun - Sat) for each year (2017--2021). (This table should have three columns: the year, the day of the week, and the number of passengers.)    
+  (Hint: make sure to group by year and wday before applying the appropriate summary function)
+- Create a graphic that displays a bar for each day of the week with the height of the bar at the average number of passengers for that day of the week with a separate facet for each year.    
+  (Hint: again, make sure you use `geom_col()` instead of `geom_bar()` here (make sure you understand the difference between these two!). Also, `facet_wrap(~year)` allows you to easily facet on year.)
+-  Add descriptive axis labels and a title.
+
+```{r}
+passengers_weekly <- ord %>%
+  group_by(year, wday) %>%
+  summarize(average_passengers = mean(passengers))
+passengers_table <- pivot_wider(passengers_weekly, names_from = wday, values_from = average_passengers)
+passengers_table
+ggplot(passengers_weekly, aes(x = wday, y = average_passengers)) +
+  geom_col() +
+  facet_wrap(~ year, nrow = 1) +
+  labs(x = "Day of the Week", y = "Average Passengers", title = "Average Number of Passengers per Day of the Week") +
+  theme_minimal()
+```
+
+
+#### 9B
+Which day of the week has the highest average number of passengers for each year?  Hint:  consider using `slice_max()`.
+
+Saturday has the highest average number of passengers for each year.
+
+#### 9C
+Which day of the week has the lowest average number of passengers for each year?  Hint:  consider using `slice_min()`.
+
+Tuesday
+

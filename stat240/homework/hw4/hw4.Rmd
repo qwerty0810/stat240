@@ -1,0 +1,305 @@
+---
+title: "Homework 4"
+author: "Gurusharan Kunusoth"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, fig.height = 3)
+library(tidyverse)
+library(lubridate)
+source("ggprob.R")
+```
+
+## Problems
+
+### 1
+
+Suppose you have a random variable $X \sim \text{Binomial}(120, 0.15)$.
+
+#### 1A
+
+Calculate and report the mean and standard deviation of the distribution.
+
+```{r}
+# insert code below
+n <- 120  
+p <- 0.15 
+
+mean <- n * p
+standard_deviation <- sqrt(n * p * (1 - p))
+
+mean
+standard_deviation
+
+```
+
+
+#### 1B
+
+Calculate and report the probability that X=20, $P(X = 20)$.
+
+```{r}
+# insert code below
+n <- 120  
+p <- 0.15  
+k <- 20  
+
+probability <- choose(n, k) * p^k * (1 - p)^(n - k)
+
+probability
+```
+
+
+#### 1C
+
+Calculate and report the probability that X>=20, $P(X >= 20)$.
+
+```{r}
+# insert code below
+n <- 120  
+p <- 0.15  
+k <- 20  
+
+probability <- 1 - pbinom(k - 1, n, p)
+
+probability
+```
+
+
+#### 1D
+
+Create a graph which displays the binomial distribution of X using vertical segments at each value of X=x, where the height of the segments indicate the probability P(X=x).  
+
+- For X >= 20, use a different color for the segments from the rest to help visualize your answer to 1C.    
+- Only display values on the plot for X <= 50  
+- You may use functions from `ggprob.R`, or create the graphic using your own code.
+
+(If you want to use `ggprob.R` functions, see discussion 4 file for more specific hints and guidance on the functions.)
+
+```{r}
+# insert code below
+library(ggplot2)
+
+n <- 120
+p <- 0.15
+
+x <- 0:n
+probabilities <- dbinom(x, n, p)
+data <- data.frame(x, probabilities)
+
+data <- data[data$x <= 50, ]
+
+plot <- ggplot(data, aes(x = x, y = probabilities)) +
+  geom_segment(aes(xend = x, yend = 0), color = "black") +
+  geom_segment(data = data[data$x >= 20, ], aes(xend = x, yend = 0), color = "red") +
+  ylim(0, max(data$probabilities)) +
+  labs(x = "X", y = "Probability") +
+  ggtitle("Binomial Distribution of X") +
+  theme_minimal()
+
+plot
+```
+
+
+
+
+### 2
+
+What is the probability that $X$ from Question 1 is within one, two, and three standard deviations of the mean? Round each probability to four decimal places.
+
+```{r}
+# insert code below
+n <- 120
+p <- 0.15
+
+mean <- n * p
+standard_deviation <- sqrt(n * p * (1 - p))
+
+lower_bound <- mean - standard_deviation
+upper_bound <- mean + standard_deviation
+prob_within_one_std <- pbinom(upper_bound, n, p) - pbinom(lower_bound - 1, n, p)
+
+lower_bound <- mean - 2 * standard_deviation
+upper_bound <- mean + 2 * standard_deviation
+prob_within_two_std <- pbinom(upper_bound, n, p) - pbinom(lower_bound - 1, n, p)
+
+lower_bound <- mean - 3 * standard_deviation
+upper_bound <- mean + 3 * standard_deviation
+prob_within_three_std <- pbinom(upper_bound, n, p) - pbinom(lower_bound - 1, n, p)
+
+prob_within_one_std <- round(prob_within_one_std, 4)
+prob_within_two_std <- round(prob_within_two_std, 4)
+prob_within_three_std <- round(prob_within_three_std, 4)
+
+prob_within_one_std
+prob_within_two_std
+prob_within_three_std
+```
+
+
+
+### 3
+
+Draw a graph of the binomial distribution from Questions 1 and 2 (similar to what you did in Question 1D with the vertical segments). You may use functions from `ggprob.R`, or create the graphic using your own code.  Only display values for X between 5 and 35.
+
+Add vertical lines with different line types at the end points of the intervals 1, 2, and 3 sigma from the mean:
+
+- solid for $\mu \pm \sigma$
+- dashed for $\mu \pm 2\sigma$
+- dotted for $\mu \pm 3\sigma$
+
+
+```{r}
+# insert code below
+library(ggplot2)
+
+n <- 120
+p <- 0.15
+
+mean <- n * p
+standard_deviation <- sqrt(n * p * (1 - p))
+
+x <- 5:35
+probabilities <- dbinom(x, n, p)
+data <- data.frame(x, probabilities)
+
+plot <- ggplot(data, aes(x = x, y = probabilities)) +
+  geom_segment(aes(xend = x, yend = 0), color = "black") +
+  ylim(0, max(data$probabilities)) +
+  labs(x = "X", y = "Probability") +
+  ggtitle("Binomial Distribution of X") +
+  theme_minimal()
+
+plot <- plot +
+  geom_vline(xintercept = c(mean - standard_deviation, mean + standard_deviation),
+             linetype = "solid", color = "blue") +
+  geom_vline(xintercept = c(mean - 2 * standard_deviation, mean + 2 * standard_deviation),
+             linetype = "dashed", color = "green") +
+  geom_vline(xintercept = c(mean - 3 * standard_deviation, mean + 3 * standard_deviation),
+             linetype = "dotted", color = "red")
+
+plot
+```
+
+
+
+
+### 4
+
+#### 4A
+
+Suppose you are playing a coin flipping game with a friend, where you suspect the coin your friend provided is not a fair coin.  In fact, you think the probability the coin lands heads is less than 0.5.  To test this, you flip the coin 100 times and observe the coin lands heads 35 times.  If you assume the coin is fair (i.e., the probability of the coin landing heads is 0.5), what is the probability of observing 30 heads or fewer? 
+
+```{r}
+# insert code below
+n <- 100  
+p <- 0.5  
+
+k <- 30  
+
+probability <- pbinom(k, n, p)
+
+probability
+```
+
+
+#### 4B
+
+Given the probability you computed in 8A, do you think observing the 35 heads in 100 tosses is evidence against the coin being fair?  Briefly explain your reasoning. 
+
+> If the likelihood of getting 30 heads or less with a fair coin (estimated in 4A) is low, then seeing 35 heads in 100 tosses can be proof against its fairness. A low probability suggests the outcome was unlikely to occur, which raises the possibility that the coin may not be impartial. However, if the calculated probability is relatively high, it lessens the case against the coin's fairness because getting 35 heads in 100 tosses would be viewed as more typical in the case of a fair coin. A lower probability strengthens the case, whilst a higher probability weakens it, and vice versa for the significance of the evidence.
+
+
+
+
+### 5
+
+#### 5A
+
+Create a tibble where each row corresponds to a binomial distribution with the following columns:
+
+- `n` for $n = 1000,1005,1010, 1015, \ldots, 25,000$
+- `p` equal to 0.25 for each row
+- `mu` equal to the mean
+- `sigma` equal to the standard deviation
+- `q.90` equal to the 0.90 quantile of the distribution
+- `z = (q.90 - mu)/sigma`, the standardized z-score of the quantile
+- `prob` equal to $P(X \ge q.90)$, a right-tail probability for the distribution in each row
+
+Display all columns and the rows of this table for which $n$ is a multiple of 5000.
+
+```{r}
+# insert code below
+binom_Dist = tibble(
+  n = seq(1000, 25000, by = 5), 
+  p = 0.25,
+  mu = n * p,
+  sigma = sqrt(n * p * (1 - p)),
+  q.90 = qbinom(.9, n, p),
+  z = (q.90 - mu)/sigma,
+  prob = 1 - pnorm(n, p, q.90)
+)
+
+print(binom_Dist)
+```
+
+
+#### 5B
+
+Use a line plot to show the relationship between $n$ on the x axis and $z$ on the y axis.
+Add a smooth curve to highlight the trend.
+Describe the pattern you see.
+
+```{r}
+# insert code below
+plot = ggplot(binom_Dist, aes(x = n, y = z)) +
+  geom_line() + labs(title = "n vs. z", x = "n", y = "z") + geom_smooth()
+
+print(plot)
+
+```
+
+From 1000 to 5500, a gentle negative curve is observed, while beyond 5500, the trend remains predominantly linear, albeit with a slight negative inclination.
+
+
+#### 5C
+
+What is the average of the values of $z$ for $n > 15,000$?  
+
+```{r}
+# insert code below
+temp_Table = binom_Dist %>% 
+  filter(n > 15000)
+avg_Values = mean(temp_Table$z)
+
+print(avg_Values)
+```
+
+
+#### 5D
+
+Plot the right tail probability `prob` on y axis versus `n` on the x axis.
+
+```{r}
+# insert code below
+probPlot = ggplot(binom_Dist, aes(x = n, y = prob)) + geom_line() +
+  labs(title = "Right Tail Probability vs. n", x = "n", y = "Right Tail Probability (prob)")
+
+print(probPlot)
+```
+
+
+#### 5E
+
+What is the average of the values of `prob` for $n > 15,000$?
+
+```{r}
+# insert code below
+temp_Table = binom_Dist %>% 
+  filter(n > 15000)
+avg_Values = mean(temp_Table$prob)
+
+print(avg_Values)
+```
+

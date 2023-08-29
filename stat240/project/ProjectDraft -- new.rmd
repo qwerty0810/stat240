@@ -1,0 +1,134 @@
+---
+title: "Final Project: Quarterback Scramble Analysis"
+author: "Petros Airapetyan, Alexandra Voss, Gurusharan Kunusoth, Josiah Lozano"
+date: "2023-08-10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message=FALSE, fig.height = 3)
+library(dplyr)
+library(tidyverse)
+source("ggprob.R")
+```
+
+```{r, include=FALSE}
+r = getOption("repos")
+r["CRAN"] = "http://cran.us.r-project.org"
+options(repos = r)
+install.packages("nflfastR")
+```
+
+## Introduction
+
+The NFL has been a long going sports organization since the early 1920's. Since the league's foundation, many teams have come and gone, rules and regulations have been introduced, and the style of play have evolved and differed. For our project, we are interested to see how, in recent years, quarterback scrambles have developed and affected their respective team's success on the field. More precisely, does the average amount of times quarterbacks scramble change throughout the years from 2000-2020? Our team has taken a position that an increase in quarterback mobility has led to an increase in overall plays, including a quarterback scramble, shifting the gameplay style throughout the NFL.
+
+## Background
+
+To begin, a quarterback is the main position on the field for the offense. They have to memorize all play calls and see how the game develops in order to change their tactics. This is where scrambling comes into play. The amount of times quarterbacks scramble in a game is related to how many times they may have been pressured to run, forced to run due to the play call, or to create more time for the play call to carefully develop. 
+  
+To further examine the frequency at which the quarterback scramble occurs, we located the data set NFLfastR. This data set was collected by Sebastian Carl, Ben Baldwin, Lee Sharpe, Maksim Horowitz, Ron Yurko, Samuel Ventura, Tan Ho, and John Edwards. The data was gathered through the utilization of NFL Gameday[^1]. NFL Gameday was developed by Zebra Technologies and Wilson Sporting Goods to provide teams with data to conduct trend analysis on team performance. The data records each play ID, the time in the game, yards gained, yards needed to reach the end zone, and how and if points were received on the play. While there is a significant amount of data included within NFLfastR, we primarily focused on qb_scramble, which indicates if the play included a scramble play by the quarterback, yds_gained, which allowed us to see if the scramble play resulted in additional yards gained, and the game_date.
+
+We hypothesized that throughout the years, the quarterback position has evolved to tame to more mobile players. More mobile quarterbacks means they scramble more and that is just what this data can show. Perhaps there are certain teams with gamestyles or quarterbacks that have shifted the game to make it more mobile overall. Our group will test the confidence interval and give a hypothesis test of the mean with the amount of times quarterbacks scramble between 2000-2022. Our analysis of the collected data will demonstrate the statistical significance the use of the quarterback scramble has on the result of yards gained and the overall outcome of the game. 
+
+## Analysis
+  
+### Total Yards Gained by Quarterbacks Through Scrambling:
+
+```{r}
+nfldata = nflreadr::load_pbp(2000:2020)
+
+newscramble = nfldata %>% 
+  select(game_date,qb_scramble, yards_gained, play_type, home_team, away_team) %>%  
+  mutate(year = year(game_date)) %>% 
+  select(-game_date) %>% 
+  group_by(qb_scramble) %>% 
+  filter(qb_scramble != "0") %>% 
+  ungroup() %>% 
+  group_by(year) %>% 
+  drop_na() %>% 
+  filter(year !=2021) %>% 
+  summarize(total_yards_gained = sum(yards_gained))
+plot = ggplot(newscramble, aes(year, total_yards_gained)) + geom_point() + geom_line(color = "blue") + labs(x = "Year (2000-2020)" , y= "Total Yards (QB Scrambling)", title = "Yards Gained Through Scrambling Quarterbacks (2000-2020)")
+
+print(plot)
+
+```
+
+As it is shown, beginning in the year 2000, the total yards gained when a quarterback scrambles is over 3800 yards. By the end of the 2020 season, there was over 6000 yards ran by quarterbacks alone. Looking at this data alone, throughout the years, there has been an increase in amount of times the quarterback runs the ball and the amount of total yards that were gained. Also, it seems as though that in 2010 there became a dramatic increase in yards gained with quarterbacks scrambling. This then prominently shifted the amount of scrambling yards gained by quarterbacks as after the year 2010, total yards have kept rising until it reached its peak in 2013.
+
+### Average number of times quarterbacks scramble from 2000-2020:
+
+```{r}
+avg_scrambles_per_year = nfldata %>%
+  filter(year(as.Date(game_date)) >= 2000 & year(as.Date(game_date)) <= 2020) %>%
+  group_by(year = year(as.Date(game_date))) %>%
+  summarize(avg_scrambles = mean(qb_scramble))
+
+plot_avg_scrambles = ggplot(avg_scrambles_per_year, aes(x = year, y = avg_scrambles)) +
+  geom_line(color = "blue") +
+  geom_point() +
+  labs(x = "Year (2000-2020)", y = "Average Scrambles per Game", title = "Average Quarterback Scrambles per Game (2000-2020)")
+
+print(plot_avg_scrambles)
+```
+
+Here, we found it necessary to compare the average quarterback scramble per game, by the year. It is important to note that the metric seems fairly small, but referring to the context of the NFL as a whole, there are 32 teams with quarterbacks of vastly different skills and abilities. So we should expect to have small amounts of scrambles per game.
+  
+There appears to be an evident trend occurring throughout the years. From 2000 to 2009, average scramble per game remained stagnant, hovering around 0.015 scrambles per game. It was from here, the avg scramble per game began to rise drastically. With the highest scramble per game averaging around 0.02.
+  
+### Confidence Intervals From Quarterbacks Scrambling Data:
+
+Null Hypothesis (H0): There is no substantial change in quarterbacks scrambling from the years 2000-2020.
+
+Alternate Hypothesis (Ha): There is a substantial change in quarterbacks scrambling from the years 2000-2020.
+
+```{r}
+
+before_2020 = nfldata %>%
+  filter(year(game_date) < 2020) %>%
+  pull(qb_scramble)
+
+after_2000 = nfldata %>%
+  filter(year(game_date) >= 2000) %>%
+  pull(qb_scramble)
+
+t_test_result = t.test(before_2020, after_2000)
+
+p_value = t_test_result$p.value
+
+print(t_test_result)
+
+alpha = 0.05
+
+if (p_value < alpha) {
+  conclusion = "Reject the Null Hypothesis. There is a substantial change in quarterbacks scrambling from the years 2000-2020."
+} else {
+  conclusion = "Fail to Reject the Null Hypothesis. There is no substantial change in quarterbacks scrambling from the years 2000-2020."
+}
+
+mean_data <- data.frame(Group = c("Before 2020", "After 2000"),
+                        Mean = c(mean(before_2020), mean(after_2000)))
+
+plot_t_test_means = ggplot(mean_data, aes(x = Group, y = Mean, fill = Group)) +
+  geom_bar(stat = "identity", width = 0.5) +  # Adjust the width of the bars here
+  labs(x = NULL, y = "Average QB Scramble Frequency", title = "Average QB Scramble Frequency Before and After 2020") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+print(plot_t_test_means)
+```
+
+Through our hypothesis test we tested the average amount of quarterback scrambles before the year 2022, and after the year 2000. We then conducted a T-test on these averages to receive our p-value, 0.105. This value resulted in a failure to reject our null hypothesis as there is not a significant enough change in quarterback scrambles throughout 2000-2022. 
+
+## Discussion
+
+As demonstrated through our analysis of this data set, between 2000-2022, there has been an increase in not only the amount of plays involving a quarterback scramble, but also a positive correlation in yards gained. In 2010 the dramatic increase in yards gained with quarterbacks scrambling prominently shifted the amount of scrambling yards gained by quarterbacks until it reached its peak in 2013. While we failed to reject our null hypothesis with this sample size we may be able to incorporate more features including different teams and they're playstyles. Whether it be more focused on the scrambling of quarterbacks or if the quarterbacks are out of the mix, we can further analyze the data to be more clear and thought out. Another thing we could focus on in the future is comparing multiple quarterbacks throughout the years and seeing if the scrambling has gone up or down to further analyze the data provided. Also with this, we can figure out the regression tactics in order to further see the shift in quarterbacks scrambling and seeing how the estimated data fits with the evidence provided. 
+
+Some shortcomings that we received when working on our analysis, is locating data and loading the data set in. Using NFLfastR allowed us to obtain our data, but with the amount of data in the files; however, it led to data being slowly downloaded. Also, because this is just base statistics, there may be outside involvement with different NFL teams that may have influenced some of the data being more spread out. The outside involvement could include playstyles, weather, rushing attempts, etc.
+
+In conclusion, we first identified the total amount of yards quarterbacks have gained through scrambling from 2000-2020. Next we went into our question which resulted in the average number of times the quarterbacks scrambles have changed through from 2000-2020. Our data suggests that quarterback scrambling had increased significantly starting in 2010. With further analysis that includes outside factors we  may be able to establish the significance of the quarterback scramble within the NFL. 
+
+## References
+
+[^1]: <https://operations.nfl.com/gameday/technology/nfl-next-gen-stats/#>

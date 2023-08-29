@@ -1,0 +1,281 @@
+---
+author: "Gurusharan Kunusoth"
+title: "Homework 1"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+library(tidyverse)
+library(lubridate)
+```
+
+
+### Preliminaries
+
+- Verify this file (`hw01.Rmd`) is in the directory `COURSE/homework/hw1/`.
+- Download `lake-monona-winters-2021.csv` and place them in your course `data` folder.
+- Set the working directory to the same location.
+- Edit this file, answer the questions, knit, and submit your solutions to Canvas.
+
+
+### The purpose of this assignment is to:
+
+- practice with some fundamentals of base R, including vectors
+- create a ggplot
+- Read ggplot2 code examples for making graphics and describe what different commands do
+- Practice using `ggplot2` commands on new data to mimic examples from lecture
+
+
+
+## Problems
+
+
+
+
+### 1
+
+Use R to sum up the numbers from 4 to 72 by:
+
+- creating a vector with these numbers
+- using the base R function `sum()` to calculate their sum.
+
+```{r}
+## Type your code here
+numbers <- 4:72
+sum_of_numbers<-sum(numbers)
+sum_of_numbers
+```
+
+The sum of the integers is:  2622
+
+
+
+
+### 2
+
+The following R chunk will set a random seed and then create a vector of random numbers.
+By setting the random seed, each person's vector will be identical as all will use the same stream of computer-generated random numbers.
+
+```{r}
+set.seed(20220623)
+v2 = runif(10)
+v2
+```
+
+Create a vector named `v2_a` from `v2` by dividing each value by the sum of these ten values. *Note: this re-weighting results in a new vector where the values are proportional to the originals, but sum to one.*
+
+```{r}
+## Type your code here
+v2_a <- v2 / sum(v2)
+v2_a
+```
+
+
+#### 2A
+
+What is the second element of `v2_a`?
+
+0.03385658
+
+
+#### 2B
+
+What is the minimum value of `v2_a`?
+
+0.07377067
+
+
+#### 2C
+
+What is the standard deviation of `v2_a`? Use the function `sd()`.
+(The standard deviation is a numerical summary of a sample of numbers that measures the size of the spread around their mean.)
+```{r}
+standard_deviation <- sd(v2_a)
+standard_deviation
+```
+
+0.0457414
+
+
+
+
+### 3
+
+This block of code reads in the Lake Mendota winter freeze data.
+
+```{r}
+mendota = read_csv("lake-mendota-winters-2021.csv")
+```
+
+
+#### 3A
+
+Create a vector named `y` which is the duration of total days that Lake Mendota is closed by ice for each winter in the data set.
+
+Calculate the mean of these values.
+
+```{r}
+## Type your code here
+y<- mendota$duration
+mean_duration <-mean(y)
+mean_duration
+```
+
+What is the mean?  102.0482
+
+
+#### 3B
+
+Read this [short page of notes](https://bookdown.org/rdpeng/rprogdatascience/vectorized-operations.html) on vectorized operations in R.
+
+Create a vector named `r` by taking `y` and subtracting from each value the mean you computed in the previous part (Make sure to use vectorized operations! If you have to use a for loop here, you're doing it wrong. In R, vectorized operations are usually orders of magnitude faster than loops.)
+
+```{r}
+## Type your code here
+r <- y - mean_duration
+mean_r <- mean(r)
+sd_r <- sd(r)
+sd_y <- sd(y)
+mean_r
+sd_r
+sd_y
+```
+
+What is the mean of `r`?  6.514984e-15
+
+What are the standard deviations of `r` and `y`?  19.64127, 19.64127
+
+
+
+#### 3C
+
+Create a vector named `z` by taking `r` and dividing each element by the standard deviation of `r` (computed with `sd()`).
+
+```{r}
+## Type your code here
+z <- r / sd_r
+mean_z <- mean(z)
+median_z <- median(z)
+sd_z <- sd(z)
+mean_z
+median_z
+sd_z
+```
+
+What are the mean, median, and standard deviation of `z`?
+
+mean: 3.278732e-16
+median: 0.09937276
+SD: 1
+
+
+
+
+### 4
+
+There are a number of data sets available in base R.  One of these is the `cars` data set, which was recorded in the 1920s:
+
+```{r}
+str(cars)
+```
+
+There are two variables:
+
+- `speed` = speed in miles per hour (mph)
+- `dist` = stopping distance in feet (ft)
+
+You can learn more about `cars` by running `?cars` in your console.
+
+Create and display a ggplot that has a point for each observation with `speed` on the x-axis and `dist` on the y-axis, and also do the following:
+
+- Make the points red (hint: add `color="red"` in your `geom_points()` function (but not inside the aesthetic this time!))
+- Add a title with "Cars data from the 1920s" (hint: see [this example](https://www.datanovia.com/en/blog/how-to-change-ggplot-labels/) if you need help.)
+- Make the x-axis label "Speed (mph)"
+- Make the y-axis label "Stopping distance (ft)"
+
+```{r}
+## Type your code here
+
+ggplot(cars, aes(x = speed, y = dist)) +
+  geom_point(color = "red") +
+  labs(title = "Cars data from the 1920s") +
+  xlab("Speed (mph)") +
+  ylab("Stopping distance (ft)")
+
+```
+
+
+
+
+### 5
+
+This line of code reads in the Monona winters dataset assuming you setup your folders in the same way.
+
+```{r}
+## Read Lake Monona data
+## Remove rows with missing data
+monona = drop_na(read_csv("lake-monona-winters-2021.csv"))
+```
+
+Using this dataset, create a histogram for the `duration` variable showing the distribution of the number of days that the lake is frozen.
+
+Approximately how many winters had between 80 to 100 days where Lake Monona was at least 50% covered with ice?
+
+```{r problem1, fig.height = 3}
+# Type your code here
+library(ggplot2)
+
+monona <- drop_na(read_csv("lake-monona-winters-2021.csv"))
+
+ggplot(monona, aes(x = duration)) +
+  geom_histogram(binwidth = 1, fill = "lightblue", color = "black") +
+  labs(title = "Distribution of Days Lake Monona is Frozen",
+       x = "Duration (days)",
+       y = "Frequency")
+
+num_winters <- sum(monona$duration >= 80 & monona$duration <= 100)
+
+num_winters
+```
+
+54
+
+
+
+
+### 6
+
+#### 6A
+
+Create a line plot with `duration` on the y axis and `year1` on the x axis. Add a blue smooth curve and a straight red line which estimate the trends.
+Modify axis labels and add an appropriate title.
+
+```{r problem3}
+## Type your code here
+
+ggplot(monona, aes(x = year1, y = duration)) +
+  geom_line(color = "blue") +
+  geom_smooth(method = "loess", se = FALSE, color = "blue") +
+  geom_hline(yintercept = mean(monona$duration), color = "red", linetype = "dashed") +
+  labs(title = "Trends in Lake Monona Winter Duration",
+       x = "Year",
+       y = "Duration (days)")
+```
+
+
+#### 6B
+
+Compare the curve and the straight line; does the curve differ from the straight line in an important manner?
+
+Yes, the line differs from the straight line in a important manner. The important difference between the curve and the straight line indicates that the relationship between year1 and duration is not strictly linear.The curve suggests that the duration of winter freeze on Lake Monona may have some variability and fluctuations over the years, rather than a consistent linear decrease. Therefore, it's important to consider the non-linear trend captured by the curve rather than relying solely on the straight line for interpreting the relationship between the variables.
+
+#### 6C
+
+Looking at your plot, what is the approximate number of days that Lake Monona was closed with ice around 1900?
+
+About 110 days.
+
+
+
+
